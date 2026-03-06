@@ -24,6 +24,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       chainId: 31337,
+      accounts: {
+        count: 10,
+        accountsBalance: "1000000000000000000000000", // 1,000,000 ETH per account
+      },
     },
     localhost: {
       url: "http://127.0.0.1:8545",
