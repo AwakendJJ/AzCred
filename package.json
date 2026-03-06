@@ -1,0 +1,25 @@
+{
+  "name": "azcred",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AzCred — Credit infrastructure for AI agents on Creditcoin",
+  "workspaces": [
+    "contracts",
+    "frontend"
+  ],
+  "scripts": {
+    "contracts:compile": "npm run compile --workspace=contracts",
+    "contracts:test": "npm run test --workspace=contracts",
+    "contracts:deploy:testnet": "npm run deploy:testnet --workspace=contracts",
+    "contracts:seed": "npm run seed --workspace=contracts",
+    "frontend:dev": "npm run dev --workspace=frontend",
+    "frontend:build": "npm run build --workspace=frontend",
+    "frontend:start": "npm run start --workspace=frontend",
+    "dev": "npm run frontend:dev",
+    "test": "npm run contracts:test"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

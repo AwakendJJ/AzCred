@@ -1,0 +1,23 @@
+{
+  "network": "creditcoin_testnet",
+  "chainId": 102031,
+  "deployedAt": null,
+  "contracts": {
+    "IdentityRegistry": {
+      "address": null,
+      "txHash": null
+    },
+    "ReputationRegistry": {
+      "address": null,
+      "txHash": null
+    },
+    "ValidationRegistry": {
+      "address": null,
+      "txHash": null
+    },
+    "AzCredCreditLine": {
+      "address": null,
+      "txHash": null
+    }
+  }
+}
