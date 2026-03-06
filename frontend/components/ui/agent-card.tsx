@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
 import { parseEther, formatEther } from "viem"
 import { ExternalLink, TrendingUp } from "lucide-react"
@@ -41,25 +41,44 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
     useWriteContract()
   const { writeContract: repayWrite, data: repayTxHash, isPending: repayPending } =
     useWriteContract()
-  const { writeContract: assignWrite, isPending: assignPending } = useWriteContract()
+  const { writeContract: assignWrite, data: assignTxHash, isPending: assignPending } =
+    useWriteContract()
 
-  const { isLoading: drawConfirming } = useWaitForTransactionReceipt({
+  const { isLoading: drawConfirming, isSuccess: drawSuccess } = useWaitForTransactionReceipt({
     hash: drawTxHash,
-    onReplaced: () => {
+  })
+  const { isLoading: repayConfirming, isSuccess: repaySuccess } = useWaitForTransactionReceipt({
+    hash: repayTxHash,
+  })
+  const { isLoading: assignConfirming, isSuccess: assignSuccess } = useWaitForTransactionReceipt({
+    hash: assignTxHash,
+  })
+
+  useEffect(() => {
+    if (drawSuccess) {
       toast.success("Draw confirmed", { description: `${drawAmount} tCTC drawn` })
       setDrawAmount("")
       onCreditUpdated?.()
-    },
-  })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawSuccess])
 
-  const { isLoading: repayConfirming } = useWaitForTransactionReceipt({
-    hash: repayTxHash,
-    onReplaced: () => {
+  useEffect(() => {
+    if (repaySuccess) {
       toast.success("Repayment confirmed", { description: `${repayAmount} tCTC repaid` })
       setRepayAmount("")
       onCreditUpdated?.()
-    },
-  })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repaySuccess])
+
+  useEffect(() => {
+    if (assignSuccess) {
+      toast.success("Credit assigned!", { description: "Credit limit is now active." })
+      onCreditUpdated?.()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignSuccess])
 
   const needsAssignment = profile.limit === 0n
 
@@ -119,6 +138,7 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
     )
   }
 
+  const assignLoading = assignPending || assignConfirming
   const drawLoading = drawPending || drawConfirming
   const repayLoading = repayPending || repayConfirming
 
@@ -128,12 +148,14 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-white">{profile.name}</h3>
               <Link
                 href={`/agent/${profile.agentId}`}
-                className="text-white/30 hover:text-white/60 transition-colors"
+                className="group flex items-center gap-1.5 hover:text-orange-400 transition-colors"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
+                <h3 className="font-semibold text-white group-hover:text-orange-400 transition-colors">
+                  {profile.name}
+                </h3>
+                <ExternalLink className="h-3.5 w-3.5 text-white/30 group-hover:text-orange-400 transition-colors" />
               </Link>
             </div>
             <p className="text-xs text-white/40">agentId #{profile.agentId.toString()}</p>
@@ -159,8 +181,8 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
               Credit not yet assigned for this agent.
             </p>
             <TransactionButton
-              loading={assignPending}
-              loadingText="Assigning..."
+              loading={assignLoading}
+              loadingText={assignPending ? "Check wallet..." : "Confirming..."}
               onClick={handleAssign}
               className="w-full"
             >

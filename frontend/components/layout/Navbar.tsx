@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation"
 import { ConnectButton } from "@rainbow-me/rainbowkit"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { Zap } from "lucide-react"
 
 const navLinks = [
   { href: "/dashboard", label: "Dashboard" },
@@ -19,10 +18,9 @@ export function Navbar() {
     <header className="fixed top-0 z-50 w-full border-b border-white/10 bg-black/80 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500">
-            <Zap className="h-4 w-4 text-white" />
-          </div>
+        <Link href="/" className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/azcred-logo.png" alt="AzCred" className="h-8 w-8" />
           <span className="text-lg font-bold text-white">AzCred</span>
         </Link>
 

@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
+import { Toaster } from "sonner"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Web3Providers } from "@/lib/providers"
 import "./globals.css"
@@ -28,6 +29,12 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} disableTransitionOnChange>
           <Web3Providers>{children}</Web3Providers>
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: { background: "#1a1a1a", border: "1px solid rgba(255,255,255,0.1)", color: "#fff" },
+            }}
+          />
         </ThemeProvider>
       </body>
     </html>

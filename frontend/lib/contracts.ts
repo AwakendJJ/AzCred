@@ -92,7 +92,7 @@ export const AZCRED_CREDIT_LINE_ABI = [
     outputs: [],
     stateMutability: "payable",
   },
-  // getCreditProfile(uint256 agentId) → (uint256 limit, uint256 outstanding, uint256 score, bool assigned)
+  // getCreditProfile(uint256 agentId) → (uint256 limit, uint256 outstanding, uint256 available, uint8 score)
   {
     type: "function",
     name: "getCreditProfile",
@@ -100,17 +100,20 @@ export const AZCRED_CREDIT_LINE_ABI = [
     outputs: [
       { name: "limit", type: "uint256" },
       { name: "outstanding", type: "uint256" },
-      { name: "score", type: "uint256" },
-      { name: "assigned", type: "bool" },
+      { name: "available", type: "uint256" },
+      { name: "score", type: "uint8" },
     ],
     stateMutability: "view",
   },
-  // previewScore(uint256 agentId) → uint256
+  // previewScore(uint256 agentId) → (uint8 score, uint256 limit)
   {
     type: "function",
     name: "previewScore",
     inputs: [{ name: "agentId", type: "uint256" }],
-    outputs: [{ type: "uint256" }],
+    outputs: [
+      { name: "score", type: "uint8" },
+      { name: "limit", type: "uint256" },
+    ],
     stateMutability: "view",
   },
   // requestCreditUpgrade(uint256 agentId)

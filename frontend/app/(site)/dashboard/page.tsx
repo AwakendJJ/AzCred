@@ -8,6 +8,8 @@ import { ConnectButton } from "@rainbow-me/rainbowkit"
 
 import { AgentCard, type AgentCreditProfile } from "@/components/ui/agent-card"
 import { StatCard } from "@/components/ui/stat-card"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   CONTRACT_ADDRESSES,
   IDENTITY_REGISTRY_ABI,
@@ -103,7 +105,7 @@ function useCreditProfiles(agentIds: bigint[]) {
 
     const profile =
       profileRaw?.status === "success"
-        ? (profileRaw.result as [bigint, bigint, bigint, boolean])
+        ? (profileRaw.result as [bigint, bigint, bigint, number])
         : null
     const meta =
       metaRaw?.status === "success"
@@ -117,14 +119,17 @@ function useCreditProfiles(agentIds: bigint[]) {
 
     const limit = profile?.[0] ?? 0n
     const outstanding = profile?.[1] ?? 0n
-    const score = Number(profile?.[2] ?? 0n)
+    // profile[2] = available (uint256), profile[3] = score (uint8)
+    const score = profile?.[3] ?? 0
+
+    const available = profile?.[2] ?? (limit > outstanding ? limit - outstanding : 0n)
 
     return {
       agentId: id,
       name: meta?.[4] ? meta[4].split(" ")[0] : `Agent #${id}`,
       limit,
       outstanding,
-      available: limit - outstanding,
+      available,
       score,
       successRate: ssSignal?.[2] ? clamp(ssSignal[0]) : null,
       uptime: upSignal?.[2] ? clamp(upSignal[0]) : null,
@@ -159,15 +164,21 @@ export default function DashboardPage() {
 
   if (!isConnected) {
     return (
-      <div className="flex min-h-[80vh] flex-col items-center justify-center gap-6 px-6 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/20">
-          <Wallet className="h-7 w-7 text-orange-400" />
-        </div>
-        <div>
-          <h2 className="mb-2 text-2xl font-bold text-white">Connect your wallet</h2>
-          <p className="text-white/50">Connect the wallet that owns your AI agents to view credit lines.</p>
-        </div>
-        <ConnectButton />
+      <div className="flex min-h-[80vh] items-center justify-center px-6">
+        <Card className="w-full max-w-sm border-white/10 bg-white/[0.04] text-center backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center gap-5 px-8 py-10">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-500/20">
+              <Wallet className="h-7 w-7 text-orange-400" />
+            </div>
+            <div>
+              <h2 className="mb-2 text-xl font-bold text-white">Connect your wallet</h2>
+              <p className="text-sm text-white/50">
+                Connect the wallet that owns your AI agents to view credit lines.
+              </p>
+            </div>
+            <ConnectButton />
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -177,10 +188,18 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-7xl px-6 py-10">
       {/* Header */}
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white">Agent Dashboard</h1>
-          <p className="mt-1 text-sm text-white/50">
+          <div className="mb-1 flex items-center gap-2">
+            <h1 className="text-2xl font-bold text-white">Agent Dashboard</h1>
+            <Badge
+              variant="outline"
+              className="border-orange-500/40 bg-orange-500/10 text-xs text-orange-400"
+            >
+              Testnet
+            </Badge>
+          </div>
+          <p className="text-sm text-white/50">
             Credit lines for your registered AI agents
           </p>
         </div>
@@ -211,21 +230,26 @@ export default function DashboardPage() {
           <Loader2 className="h-8 w-8 animate-spin text-orange-400" />
         </div>
       ) : agentIds.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-2xl border border-white/10 bg-white/5 py-20 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
-            <Zap className="h-6 w-6 text-orange-400" />
-          </div>
-          <h3 className="text-lg font-semibold text-white">No agents found</h3>
-          <p className="max-w-sm text-sm text-white/50">
-            This wallet has no registered agents in the Identity Registry. Register an agent first to access credit.
-          </p>
-          <div className="mt-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2">
-            <AlertTriangle className="h-4 w-4 text-amber-400" />
-            <span className="text-xs text-amber-400">
-              Use the seed script to register test agents, or deploy on testnet.
-            </span>
-          </div>
-        </div>
+        <Card className="border-white/10 bg-white/[0.04] backdrop-blur-sm">
+          <CardContent className="flex flex-col items-center gap-4 py-20 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/10">
+              <Zap className="h-6 w-6 text-orange-400" />
+            </div>
+            <div>
+              <h3 className="mb-1 text-lg font-semibold text-white">No agents found</h3>
+              <p className="max-w-sm text-sm text-white/50">
+                This wallet has no registered agents in the Identity Registry.
+                Register an agent first to access credit.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-2.5">
+              <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-400" />
+              <span className="text-xs text-amber-400">
+                Use the seed script to register test agents, or deploy on testnet.
+              </span>
+            </div>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {profiles.map((profile) => (
