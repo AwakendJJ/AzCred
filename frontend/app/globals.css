@@ -95,6 +95,19 @@
     }
   }
 
+  --animate-glow-pulse: glow-pulse 3s ease-in-out infinite;
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      filter: drop-shadow(0 0 8px rgba(249, 115, 22, 0.45)) drop-shadow(0 0 28px rgba(249, 115, 22, 0.18));
+      opacity: 0.28;
+    }
+    50% {
+      filter: drop-shadow(0 0 20px rgba(249, 115, 22, 0.75)) drop-shadow(0 0 56px rgba(249, 115, 22, 0.38));
+      opacity: 0.52;
+    }
+  }
+
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
 

@@ -52,7 +52,7 @@ async function main() {
 
   if (!identityAddr || !reputationAddr) {
     throw new Error(
-      "Registry addresses not found. Run 'npm run deploy:registries' first."
+      "Registry addresses not found. Run 'npm run deploy:testnet' first."
     )
   }
 
@@ -69,10 +69,24 @@ async function main() {
   console.log(`Identity Registry   : ${identityAddr}`)
   console.log(`Reputation Registry : ${reputationAddr}\n`)
 
+  // ── Feedback signer ──────────────────────────────────────────────────────
+  // giveFeedback() blocks the agent owner from rating their own agent.
+  // Since the deployer registers all agents (and therefore owns them), we
+  // create a fresh throwaway wallet and fund it with a small amount of tCTC
+  // to pay for gas when submitting feedback.
+  const feedbackWallet = ethers.Wallet.createRandom().connect(ethers.provider)
+  console.log(`Feedback signer     : ${feedbackWallet.address} (random, ephemeral)`)
+  const fundTx = await deployer.sendTransaction({
+    to: feedbackWallet.address,
+    value: ethers.parseEther("1"), // 1 tCTC covers 9 feedback txs with plenty of margin
+  })
+  await fundTx.wait()
+  console.log(`  Funded feedback signer with 1 tCTC ✓\n`)
+
   for (const agent of AGENTS) {
     separator(`Registering Agent: ${agent.name}`)
 
-    // 1. Register agent in IdentityRegistry
+    // 1. Register agent in IdentityRegistry (deployer becomes the agent owner)
     const agentURI = JSON.stringify({
       type: "https://eips.ethereum.org/EIPS/eip-8004#registration-v1",
       name: agent.name,
@@ -98,7 +112,7 @@ async function main() {
     const agentId: bigint = registeredEvent.args.agentId
     console.log(`  Registered ${agent.name} → agentId: ${agentId}`)
 
-    // 2. Submit reputation signals for each tag
+    // 2. Submit reputation signals using the feedbackWallet (not the agent owner)
     const signals: Array<[string, number]> = [
       ["successRate", agent.signals.successRate],
       ["uptime", agent.signals.uptime],
@@ -106,7 +120,7 @@ async function main() {
     ]
 
     for (const [tag, value] of signals) {
-      const feedbackTx = await reputationRegistry.connect(deployer).giveFeedback(
+      const feedbackTx = await reputationRegistry.connect(feedbackWallet).giveFeedback(
         agentId,
         value,           // int128 value (0-100 scale, 0 decimals)
         0,               // valueDecimals
@@ -141,7 +155,7 @@ async function main() {
 
   separator("Seeding Complete")
   console.log("  3 agents registered and seeded across all credit tiers.")
-  console.log("  Next: run 'npm run deploy:azcred' then call assignCredit() for each agentId.")
+  console.log("  Next: copy addresses to frontend/.env.local and run npm run frontend:dev")
 }
 
 main().catch((err) => {

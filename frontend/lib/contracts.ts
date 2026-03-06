@@ -1,245 +1,132 @@
-/**
- * Central registry of deployed contract addresses and ABIs.
- * Addresses are populated from environment variables after deployment.
- * ABIs are imported from the Hardhat artifacts folder via a shared path.
- *
- * During development, run `npm run contracts:deploy:testnet` from the root,
- * then copy the addresses from contracts/deployments/testnet.json into
- * your frontend/.env.local file.
- */
+import { type Address } from "viem"
 
-export const CONTRACT_ADDRESSES = {
-  identityRegistry: (process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS || "") as `0x${string}`,
-  reputationRegistry: (process.env.NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS || "") as `0x${string}`,
-  validationRegistry: (process.env.NEXT_PUBLIC_VALIDATION_REGISTRY_ADDRESS || "") as `0x${string}`,
-  azCredCreditLine: (process.env.NEXT_PUBLIC_AZCRED_CREDIT_LINE_ADDRESS || "") as `0x${string}`,
-} as const
+// ─── Deployed contract addresses ────────────────────────────────────────────
+// These are populated after running `npm run contracts:deploy:testnet`
+// and copying addresses from contracts/deployments/testnet.json
+export const CONTRACT_ADDRESSES: Record<string, Address> = {
+  identityRegistry:
+    (process.env.NEXT_PUBLIC_IDENTITY_REGISTRY_ADDRESS as Address) ??
+    "0x0000000000000000000000000000000000000000",
+  reputationRegistry:
+    (process.env.NEXT_PUBLIC_REPUTATION_REGISTRY_ADDRESS as Address) ??
+    "0x0000000000000000000000000000000000000000",
+  validationRegistry:
+    (process.env.NEXT_PUBLIC_VALIDATION_REGISTRY_ADDRESS as Address) ??
+    "0x0000000000000000000000000000000000000000",
+  azCredCreditLine:
+    (process.env.NEXT_PUBLIC_AZCRED_CREDIT_LINE_ADDRESS as Address) ??
+    "0x0000000000000000000000000000000000000000",
+}
 
-// ---------------------------------------------------------------------------
-// IdentityRegistry ABI (ERC-8004 — relevant functions only)
-// ---------------------------------------------------------------------------
+// ─── ABIs (minimal — only functions the frontend calls) ──────────────────────
+
 export const IDENTITY_REGISTRY_ABI = [
+  // totalSupply() → uint256
+  { type: "function", name: "totalSupply", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  // tokenByIndex(uint256 index) → uint256
+  { type: "function", name: "tokenByIndex", inputs: [{ name: "index", type: "uint256" }], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  // ownerOf(uint256 tokenId) → address
+  { type: "function", name: "ownerOf", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ type: "address" }], stateMutability: "view" },
+  // tokenURI(uint256 tokenId) → string
+  { type: "function", name: "tokenURI", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ type: "string" }], stateMutability: "view" },
+  // getMetadata(uint256 agentId) → (string agentType, string model, string endpoint, string version, string description)
   {
-    name: "register",
     type: "function",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "agentURI", type: "string" }],
-    outputs: [{ name: "agentId", type: "uint256" }],
-  },
-  {
-    name: "ownerOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    outputs: [{ name: "", type: "address" }],
-  },
-  {
-    name: "balanceOf",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "owner", type: "address" }],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "tokenOfOwnerByIndex",
-    type: "function",
-    stateMutability: "view",
-    inputs: [
-      { name: "owner", type: "address" },
-      { name: "index", type: "uint256" },
-    ],
-    outputs: [{ name: "", type: "uint256" }],
-  },
-  {
-    name: "tokenURI",
-    type: "function",
-    stateMutability: "view",
-    inputs: [{ name: "tokenId", type: "uint256" }],
-    outputs: [{ name: "", type: "string" }],
-  },
-  {
-    name: "setAgentURI",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "newURI", type: "string" },
-    ],
-    outputs: [],
-  },
-  {
-    name: "Registered",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "agentURI", type: "string", indexed: false },
-      { name: "owner", type: "address", indexed: true },
-    ],
-  },
-] as const
-
-// ---------------------------------------------------------------------------
-// ReputationRegistry ABI (ERC-8004 — relevant functions only)
-// ---------------------------------------------------------------------------
-export const REPUTATION_REGISTRY_ABI = [
-  {
-    name: "giveFeedback",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "value", type: "int128" },
-      { name: "valueDecimals", type: "uint8" },
-      { name: "tag1", type: "string" },
-      { name: "tag2", type: "string" },
+    name: "getMetadata",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [
+      { name: "agentType", type: "string" },
+      { name: "model", type: "string" },
       { name: "endpoint", type: "string" },
-      { name: "feedbackURI", type: "string" },
-      { name: "feedbackHash", type: "bytes32" },
+      { name: "version", type: "string" },
+      { name: "description", type: "string" },
     ],
-    outputs: [],
-  },
-  {
-    name: "getSummary",
-    type: "function",
     stateMutability: "view",
+  },
+  // balanceOf(address owner) → uint256
+  { type: "function", name: "balanceOf", inputs: [{ name: "owner", type: "address" }], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  // tokenOfOwnerByIndex(address owner, uint256 index) → uint256
+  { type: "function", name: "tokenOfOwnerByIndex", inputs: [{ name: "owner", type: "address" }, { name: "index", type: "uint256" }], outputs: [{ type: "uint256" }], stateMutability: "view" },
+] as const
+
+export const REPUTATION_REGISTRY_ABI = [
+  // getLatestSignal(uint256 agentId, string tag1) → (int128 value, uint8 valueDecimals, bool found)
+  {
+    type: "function",
+    name: "getLatestSignal",
     inputs: [
       { name: "agentId", type: "uint256" },
-      { name: "clientAddresses", type: "address[]" },
       { name: "tag1", type: "string" },
-      { name: "tag2", type: "string" },
-    ],
-    outputs: [
-      { name: "count", type: "uint64" },
-      { name: "summaryValue", type: "int128" },
-      { name: "summaryValueDecimals", type: "uint8" },
-    ],
-  },
-  {
-    name: "readFeedback",
-    type: "function",
-    stateMutability: "view",
-    inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "clientAddress", type: "address" },
-      { name: "feedbackIndex", type: "uint64" },
     ],
     outputs: [
       { name: "value", type: "int128" },
       { name: "valueDecimals", type: "uint8" },
-      { name: "tag1", type: "string" },
-      { name: "tag2", type: "string" },
-      { name: "isRevoked", type: "bool" },
+      { name: "found", type: "bool" },
     ],
-  },
-  {
-    name: "getClients",
-    type: "function",
     stateMutability: "view",
-    inputs: [{ name: "agentId", type: "uint256" }],
-    outputs: [{ name: "", type: "address[]" }],
-  },
-  {
-    name: "NewFeedback",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "clientAddress", type: "address", indexed: true },
-      { name: "feedbackIndex", type: "uint64", indexed: false },
-      { name: "value", type: "int128", indexed: false },
-      { name: "valueDecimals", type: "uint8", indexed: false },
-      { name: "tag1", type: "string", indexed: false },
-      { name: "tag2", type: "string", indexed: false },
-    ],
   },
 ] as const
 
-// ---------------------------------------------------------------------------
-// AzCredCreditLine ABI
-// ---------------------------------------------------------------------------
 export const AZCRED_CREDIT_LINE_ABI = [
+  // assignCredit(uint256 agentId)
   {
+    type: "function",
     name: "assignCredit",
-    type: "function",
-    stateMutability: "nonpayable",
     inputs: [{ name: "agentId", type: "uint256" }],
     outputs: [],
+    stateMutability: "nonpayable",
   },
+  // drawCredit(uint256 agentId, uint256 amount)
   {
+    type: "function",
     name: "drawCredit",
-    type: "function",
-    stateMutability: "nonpayable",
-    inputs: [
-      { name: "agentId", type: "uint256" },
-      { name: "amount", type: "uint256" },
-    ],
+    inputs: [{ name: "agentId", type: "uint256" }, { name: "amount", type: "uint256" }],
     outputs: [],
+    stateMutability: "nonpayable",
   },
+  // repayCredit(uint256 agentId)  payable
   {
+    type: "function",
     name: "repayCredit",
-    type: "function",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [],
     stateMutability: "payable",
-    inputs: [{ name: "agentId", type: "uint256" }],
-    outputs: [],
   },
+  // getCreditProfile(uint256 agentId) → (uint256 limit, uint256 outstanding, uint256 score, bool assigned)
   {
-    name: "requestCreditUpgrade",
     type: "function",
-    stateMutability: "nonpayable",
-    inputs: [{ name: "agentId", type: "uint256" }],
-    outputs: [],
-  },
-  {
     name: "getCreditProfile",
-    type: "function",
-    stateMutability: "view",
     inputs: [{ name: "agentId", type: "uint256" }],
     outputs: [
       { name: "limit", type: "uint256" },
       { name: "outstanding", type: "uint256" },
-      { name: "available", type: "uint256" },
-      { name: "score", type: "uint8" },
+      { name: "score", type: "uint256" },
+      { name: "assigned", type: "bool" },
     ],
+    stateMutability: "view",
   },
+  // previewScore(uint256 agentId) → uint256
   {
-    name: "fundPool",
     type: "function",
-    stateMutability: "payable",
-    inputs: [],
+    name: "previewScore",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  // requestCreditUpgrade(uint256 agentId)
+  {
+    type: "function",
+    name: "requestCreditUpgrade",
+    inputs: [{ name: "agentId", type: "uint256" }],
     outputs: [],
+    stateMutability: "nonpayable",
   },
+  // poolBalance() → uint256
   {
-    name: "CreditAssigned",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "creditLimit", type: "uint256", indexed: false },
-      { name: "score", type: "uint8", indexed: false },
-    ],
-  },
-  {
-    name: "CreditDrawn",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "amount", type: "uint256", indexed: false },
-      { name: "outstandingBalance", type: "uint256", indexed: false },
-    ],
-  },
-  {
-    name: "CreditRepaid",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "amount", type: "uint256", indexed: false },
-      { name: "outstandingBalance", type: "uint256", indexed: false },
-    ],
-  },
-  {
-    name: "CreditUpgradeRequested",
-    type: "event",
-    inputs: [
-      { name: "agentId", type: "uint256", indexed: true },
-      { name: "owner", type: "address", indexed: true },
-    ],
+    type: "function",
+    name: "poolBalance",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
   },
 ] as const

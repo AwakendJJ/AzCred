@@ -45,8 +45,9 @@ async function main() {
   const validationRegistry = await ValidationRegistry.connect(deployer).deploy()
   await validationRegistry.waitForDeployment()
   const validationAddress = await validationRegistry.getAddress()
-  await (await validationRegistry.initialize(identityAddress)).wait()
-  console.log(`  ValidationRegistry → ${validationAddress} (initialized)`)
+  // initialize() skipped — ValidationRegistry is not used by AzCredCreditLine in the MVP
+  // and its initialize() triggers an unsupported opcode on the Creditcoin testnet EVM
+  console.log(`  ValidationRegistry → ${validationAddress} (deployed, uninitialized)`)
 
   // ------------------------------------------------------------------
   // 4. AzCredCreditLine
@@ -61,10 +62,10 @@ async function main() {
   const creditLineAddress = await azCredCreditLine.getAddress()
   console.log(`  AzCredCreditLine   → ${creditLineAddress}`)
 
-  // Fund the credit pool with 3000 tCTC to cover all tiers (3 × 1000 tCTC)
-  console.log("  Funding credit pool with 3000 tCTC...")
+  // Fund the credit pool with 100 tCTC (testnet demo amount)
+  console.log("  Funding credit pool with 100 tCTC...")
   const fundTx = await azCredCreditLine.fundPool({
-    value: ethers.parseEther("3000"),
+    value: ethers.parseEther("100"),
   })
   await fundTx.wait()
   console.log("  Pool funded ✓")
