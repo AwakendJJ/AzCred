@@ -132,4 +132,64 @@ export const AZCRED_CREDIT_LINE_ABI = [
     outputs: [{ type: "uint256" }],
     stateMutability: "view",
   },
+  // annualInterestRateBps() → uint256
+  {
+    type: "function",
+    name: "annualInterestRateBps",
+    inputs: [],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  // interestAccrued(uint256 agentId) → uint256
+  {
+    type: "function",
+    name: "interestAccrued",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  // totalOwed(uint256 agentId) → uint256  (principal + interest)
+  {
+    type: "function",
+    name: "totalOwed",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  // drawTimestamp(uint256 agentId) → uint256
+  {
+    type: "function",
+    name: "drawTimestamp",
+    inputs: [{ name: "agentId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  // ── Events (used by getLogs for history page) ───────────────────────────
+  {
+    type: "event",
+    name: "CreditAssigned",
+    inputs: [
+      { name: "agentId", type: "uint256", indexed: true },
+      { name: "creditLimit", type: "uint256", indexed: false },
+      { name: "score", type: "uint8", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "CreditDrawn",
+    inputs: [
+      { name: "agentId", type: "uint256", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "outstandingBalance", type: "uint256", indexed: false },
+    ],
+  },
+  {
+    type: "event",
+    name: "CreditRepaid",
+    inputs: [
+      { name: "agentId", type: "uint256", indexed: true },
+      { name: "amount", type: "uint256", indexed: false },
+      { name: "outstandingBalance", type: "uint256", indexed: false },
+    ],
+  },
 ] as const

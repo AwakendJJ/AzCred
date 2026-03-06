@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useWriteContract, useWaitForTransactionReceipt } from "wagmi"
+import { useWriteContract, useWaitForTransactionReceipt, useReadContracts } from "wagmi"
 import { parseEther, formatEther } from "viem"
 import { ExternalLink, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { CreditTierBadge } from "@/components/ui/credit-tier-badge"
 import { ReputationSignals } from "@/components/ui/reputation-signals"
@@ -35,7 +34,41 @@ interface AgentCardProps {
 
 export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
   const [drawAmount, setDrawAmount] = useState("")
-  const [repayAmount, setRepayAmount] = useState("")
+
+  // Fetch live interest data
+  const { data: interestData, refetch: refetchInterest } = useReadContracts({
+    contracts: [
+      {
+        address: CONTRACT_ADDRESSES.azCredCreditLine,
+        abi: AZCRED_CREDIT_LINE_ABI,
+        functionName: "totalOwed",
+        args: [profile.agentId],
+      },
+      {
+        address: CONTRACT_ADDRESSES.azCredCreditLine,
+        abi: AZCRED_CREDIT_LINE_ABI,
+        functionName: "interestAccrued",
+        args: [profile.agentId],
+      },
+      {
+        address: CONTRACT_ADDRESSES.azCredCreditLine,
+        abi: AZCRED_CREDIT_LINE_ABI,
+        functionName: "annualInterestRateBps",
+      },
+    ],
+    query: { enabled: profile.outstanding > 0n },
+  })
+
+  const totalOwedAmount = interestData?.[0]?.status === "success"
+    ? (interestData[0].result as bigint)
+    : profile.outstanding
+  const interestAmount = interestData?.[1]?.status === "success"
+    ? (interestData[1].result as bigint)
+    : 0n
+  const rateBps = interestData?.[2]?.status === "success"
+    ? Number(interestData[2].result as bigint)
+    : 500
+  const ratePercent = (rateBps / 100).toFixed(1)
 
   const { writeContract: drawWrite, data: drawTxHash, isPending: drawPending } =
     useWriteContract()
@@ -65,9 +98,10 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
 
   useEffect(() => {
     if (repaySuccess) {
-      toast.success("Repayment confirmed", { description: `${repayAmount} tCTC repaid` })
+      toast.success("Repayment confirmed", { description: `${formatEther(totalOwedAmount)} tCTC repaid` })
       setRepayAmount("")
       onCreditUpdated?.()
+      refetchInterest()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repaySuccess])
@@ -118,9 +152,8 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
   }
 
   function handleRepay() {
-    const amount = parseFloat(repayAmount)
-    if (!repayAmount || isNaN(amount) || amount <= 0) {
-      toast.error("Enter a valid repay amount")
+    if (totalOwedAmount === 0n) {
+      toast.error("Nothing to repay")
       return
     }
     repayWrite(
@@ -129,7 +162,7 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
         abi: AZCRED_CREDIT_LINE_ABI,
         functionName: "repayCredit",
         args: [profile.agentId],
-        value: parseEther(repayAmount),
+        value: totalOwedAmount,
       },
       {
         onSuccess: () => toast.info("Repayment submitted, waiting for confirmation..."),
@@ -238,26 +271,30 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
             {profile.outstanding > 0n && (
               <div className="space-y-2">
                 <p className="text-xs font-medium text-white/50">Repay Credit</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="number"
-                    min="0"
-                    placeholder="Amount in tCTC"
-                    value={repayAmount}
-                    onChange={(e) => setRepayAmount(e.target.value)}
-                    className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                  />
-                  <TransactionButton
-                    loading={repayLoading}
-                    loadingText="Repaying..."
-                    onClick={handleRepay}
-                    disabled={!repayAmount || repayLoading}
-                    variant="outline"
-                    className="shrink-0 border-white/20 text-white hover:bg-white/10"
-                  >
-                    Repay
-                  </TransactionButton>
+                <div className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2.5 space-y-1">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/40">Principal</span>
+                    <span className="text-white">{formatEther(profile.outstanding)} tCTC</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-white/40">Interest ({ratePercent}% p.a.)</span>
+                    <span className="text-orange-400">+{parseFloat(formatEther(interestAmount)).toFixed(6)} tCTC</span>
+                  </div>
+                  <div className="flex justify-between text-xs font-semibold border-t border-white/10 pt-1.5 mt-1.5">
+                    <span className="text-white/70">Total Owed</span>
+                    <span className="text-white">{parseFloat(formatEther(totalOwedAmount)).toFixed(6)} tCTC</span>
+                  </div>
                 </div>
+                <TransactionButton
+                  loading={repayLoading}
+                  loadingText={repayPending ? "Check wallet..." : "Confirming..."}
+                  onClick={handleRepay}
+                  disabled={repayLoading}
+                  variant="outline"
+                  className="w-full border-white/20 text-white hover:bg-white/10"
+                >
+                  Repay {parseFloat(formatEther(totalOwedAmount)).toFixed(4)} tCTC
+                </TransactionButton>
               </div>
             )}
           </>

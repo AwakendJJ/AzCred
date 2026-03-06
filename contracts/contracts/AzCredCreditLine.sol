@@ -19,6 +19,12 @@ import "./ReputationRegistry.sol";
  *   34–66  → 500  tCTC
  *   67–100 → 1000 tCTC
  *
+ * Interest model:
+ *   Simple time-based accrual from first draw timestamp.
+ *   interest = principal × annualInterestRateBps × elapsed / (365 days × 10_000)
+ *   Full repayment (principal + accrued interest) required.
+ *   Interest stays in pool as protocol revenue.
+ *
  * Credit limits are assigned once via assignCredit() and cached.
  * The deployer pre-funds the contract pool via fundPool().
  */
@@ -42,14 +48,20 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
     IdentityRegistry public immutable identityRegistry;
     ReputationRegistry public immutable reputationRegistry;
 
+    /// Annual interest rate in basis points (e.g. 500 = 5% per year). Owner-configurable.
+    uint256 public annualInterestRateBps = 500;
+
     /// agentId => assigned credit limit (0 = not yet assigned)
     mapping(uint256 => uint256) public creditLimit;
 
-    /// agentId => outstanding drawn balance
+    /// agentId => outstanding drawn balance (principal only)
     mapping(uint256 => uint256) public outstandingBalance;
 
     /// agentId => cached credit score at time of assignment
     mapping(uint256 => uint8) public creditScore;
+
+    /// agentId => block.timestamp of the first draw (reset to 0 on full repayment)
+    mapping(uint256 => uint256) public drawTimestamp;
 
     // -----------------------------------------------------------------------
     // Events
@@ -80,6 +92,7 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
 
     event PoolFunded(address indexed funder, uint256 amount);
     event PoolWithdrawn(address indexed to, uint256 amount);
+    event InterestRateUpdated(uint256 newRateBps);
 
     // -----------------------------------------------------------------------
     // Errors
@@ -94,6 +107,7 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
     error RepaymentExceedsOutstanding(uint256 repaid, uint256 outstanding);
     error NoOutstandingBalance(uint256 agentId);
     error InsufficientRepayment();
+    error InsufficientRepaymentWithInterest(uint256 sent, uint256 required);
     error NoSignalsFound(uint256 agentId);
     error WithdrawFailed();
 
@@ -156,6 +170,11 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
         if (amount > currentPool)
             revert InsufficientPoolBalance(amount, currentPool);
 
+        // Record first draw timestamp for interest accrual
+        if (drawTimestamp[agentId] == 0) {
+            drawTimestamp[agentId] = block.timestamp;
+        }
+
         outstandingBalance[agentId] += amount;
         emit CreditDrawn(agentId, amount, outstandingBalance[agentId]);
 
@@ -169,19 +188,32 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
     // -----------------------------------------------------------------------
 
     /**
-     * @notice Repay outstanding credit. Send tCTC as msg.value.
-     *         Accepts partial or full repayment.
+     * @notice Repay outstanding credit in full (principal + accrued interest).
+     *         Send exactly totalOwed(agentId) as msg.value.
+     *         Interest portion stays in the pool as protocol revenue.
      * @param agentId The agent whose credit is being repaid.
      */
     function repayCredit(uint256 agentId) external payable nonReentrant {
         if (creditLimit[agentId] == 0) revert CreditNotAssigned(agentId);
         if (outstandingBalance[agentId] == 0) revert NoOutstandingBalance(agentId);
         if (msg.value == 0) revert InsufficientRepayment();
-        if (msg.value > outstandingBalance[agentId])
-            revert RepaymentExceedsOutstanding(msg.value, outstandingBalance[agentId]);
 
-        outstandingBalance[agentId] -= msg.value;
-        emit CreditRepaid(agentId, msg.value, outstandingBalance[agentId]);
+        uint256 interest = interestAccrued(agentId);
+        uint256 required = outstandingBalance[agentId] + interest;
+        if (msg.value < required)
+            revert InsufficientRepaymentWithInterest(msg.value, required);
+
+        uint256 principal = outstandingBalance[agentId];
+        outstandingBalance[agentId] = 0;
+        drawTimestamp[agentId] = 0;
+
+        // Return any overpayment to caller
+        if (msg.value > required) {
+            (bool refund, ) = payable(msg.sender).call{value: msg.value - required}("");
+            require(refund, "Refund failed");
+        }
+
+        emit CreditRepaid(agentId, principal, 0);
     }
 
     // -----------------------------------------------------------------------
@@ -202,6 +234,24 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
     // -----------------------------------------------------------------------
     // View Functions
     // -----------------------------------------------------------------------
+
+    /**
+     * @notice Calculate interest accrued on the outstanding balance since first draw.
+     * @dev    Uses simple (non-compounding) interest: principal × rate × time / (365d × 10000).
+     */
+    function interestAccrued(uint256 agentId) public view returns (uint256) {
+        if (outstandingBalance[agentId] == 0 || drawTimestamp[agentId] == 0) return 0;
+        uint256 elapsed = block.timestamp - drawTimestamp[agentId];
+        return (outstandingBalance[agentId] * annualInterestRateBps * elapsed)
+               / (365 days * 10_000);
+    }
+
+    /**
+     * @notice Total amount owed by an agent: principal + accrued interest.
+     */
+    function totalOwed(uint256 agentId) public view returns (uint256) {
+        return outstandingBalance[agentId] + interestAccrued(agentId);
+    }
 
     /**
      * @notice Read the full credit profile for an agent.
@@ -246,6 +296,15 @@ contract AzCredCreditLine is Ownable, ReentrancyGuard {
     // -----------------------------------------------------------------------
     // Admin
     // -----------------------------------------------------------------------
+
+    /**
+     * @notice Update the annual interest rate. Owner only.
+     * @param bps New rate in basis points (e.g. 500 = 5%).
+     */
+    function setInterestRate(uint256 bps) external onlyOwner {
+        annualInterestRateBps = bps;
+        emit InterestRateUpdated(bps);
+    }
 
     /**
      * @notice Fund the credit pool. Owner only.

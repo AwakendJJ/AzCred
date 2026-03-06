@@ -3,7 +3,7 @@
 import { use } from "react"
 import { useReadContracts } from "wagmi"
 import { formatEther } from "viem"
-import { Loader2, ArrowLeft, Bot } from "lucide-react"
+import { Loader2, ArrowLeft, Bot, History } from "lucide-react"
 import Link from "next/link"
 
 import { CreditTierBadge, getTier, getTierLimit } from "@/components/ui/credit-tier-badge"
@@ -108,14 +108,23 @@ export default function AgentProfilePage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-6 py-10">
-      {/* Back */}
-      <Link
-        href="/dashboard"
-        className="mb-8 inline-flex items-center gap-1.5 text-sm text-white/40 transition-colors hover:text-white"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Dashboard
-      </Link>
+      {/* Back + History */}
+      <div className="mb-8 flex items-center justify-between">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-white/40 transition-colors hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Link>
+        <Link
+          href={`/agent/${agentIdStr}/history`}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white/50 transition-colors hover:border-orange-500/40 hover:text-orange-400"
+        >
+          <History className="h-3.5 w-3.5" />
+          View History
+        </Link>
+      </div>
 
       {/* Agent header */}
       <div className="mb-8 flex items-start gap-4">

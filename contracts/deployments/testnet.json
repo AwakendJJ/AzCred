@@ -1,23 +1,23 @@
 {
   "network": "creditcoin_testnet",
   "chainId": 102031,
-  "deployedAt": "2026-03-06T12:57:59.039Z",
+  "deployedAt": "2026-03-06T23:12:12.485Z",
   "contracts": {
     "IdentityRegistry": {
-      "address": "0xE835269Ed98738246CF51B6fF232ea85C889ab6d",
-      "txHash": "0xa2bd543e9d0ec783af3d02db2be996e345280a1bc3d898d2cf941381c0f3e470"
+      "address": "0x0eE5eB4A7A4e6dd3FFcE897196F90564F3Ba9572",
+      "txHash": "0x0a7de8c47701d806243a9b58d86dec5305940d94d69c1c39304354afbb899b00"
     },
     "ReputationRegistry": {
-      "address": "0xc3fA367C0Ab98Ae37E6AE2F9CA7Fa8Da57BF62F5",
-      "txHash": "0x50d44479b75d045bb93441818a3500e928e46d9833b429d3bdd29bc8ff1e7d79"
+      "address": "0x16445e50e70f37a7795C5a4Ad1583E9250C85494",
+      "txHash": "0xd5d774f8d06762145866335d82194deb268ee4c50eebda6762c3e7cdc507e267"
     },
     "ValidationRegistry": {
-      "address": "0xfDB9B59abAd6188d003F14C95D133B9D7e493Fe8",
-      "txHash": "0x12f38eb5d306ca88a07bfe644449b5214baa91637294c000d6883ff4b7db2a3a"
+      "address": "0xD95D19F086bf429A86Ea623B152E3038876383d4",
+      "txHash": "0x5b049f4e261b5329279df5b1264dc74d9b72eb1b9cfce0e67341cd606bdd5a4e"
     },
     "AzCredCreditLine": {
-      "address": "0xFde0E3dD5176233D3E2b093cF95306ad656Bf7f6",
-      "txHash": "0x95470aadeadae806c77597a74b6cf85781f446b73ac3aa9a854c122f3d8bb111"
+      "address": "0x14ff68b60d69170eb4d1fD9752426758c629763C",
+      "txHash": "0x52783203b41af95cf5bde952fff88dcee1777fbf7a55014158fd6a8038d494db"
     }
   }
 }
