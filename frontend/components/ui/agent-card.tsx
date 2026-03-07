@@ -160,6 +160,7 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
     isSuccess: repaySuccess,
     isError: repayFailed,
     error: repayReceiptError,
+    data: repayReceipt,
   } = useWaitForTransactionReceipt({ hash: repayTxHash })
 
   const {
@@ -212,20 +213,47 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
 
   useEffect(() => {
     if (repaySuccess) {
+      if (repayReceipt?.status === "reverted") {
+        const link = repayTxHash
+          ? `https://creditcoin-testnet.blockscout.com/tx/${repayTxHash}`
+          : null
+        console.error("[AgentCard] repay reverted on-chain:", repayReceipt)
+        toast.error("Repayment reverted on-chain", {
+          description: "Transaction was mined but execution reverted.",
+          action: link ? { label: "View on Blockscout", onClick: () => window.open(link, "_blank") } : undefined,
+          duration: 12000,
+        })
+        return
+      }
       toast.success("Repayment confirmed", { description: `${formatEther(totalOwedAmount)} tCTC repaid` })
       onCreditUpdated?.()
       refetchInterest()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [repaySuccess])
+  }, [repaySuccess, repayReceipt])
 
   useEffect(() => {
     if (repayFailed) {
-      const msg = repayReceiptError?.message ?? ""
+      const walk = (e: unknown): string => {
+        if (!e) return ""
+        const o = e as Record<string, unknown>
+        return [String(o.message ?? ""), String(o.shortMessage ?? ""), walk(o.cause)].join(" ")
+      }
+      const msg = walk(repayReceiptError)
+      console.error("[AgentCard repay receipt error]", repayReceiptError)
       const hint = msg.includes("InsufficientRepaymentWithInterest")
-        ? "Send the full amount including accrued interest."
-        : "Repayment transaction reverted. Try again."
-      toast.error("Repayment failed", { description: hint })
+        ? "Sent value was less than principal + interest. Retrying should fix it."
+        : msg.includes("NoOutstandingBalance")
+        ? "No outstanding balance to repay."
+        : "Repayment reverted on-chain — see Blockscout for details."
+      const link = repayTxHash
+        ? `https://creditcoin-testnet.blockscout.com/tx/${repayTxHash}`
+        : null
+      toast.error("Repayment failed", {
+        description: hint,
+        action: link ? { label: "View on Blockscout", onClick: () => window.open(link, "_blank") } : undefined,
+        duration: 12000,
+      })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repayFailed])
@@ -302,18 +330,26 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
       toast.error("Nothing to repay")
       return
     }
+    // Add a 0.01% buffer (+ 1 wei floor) so the tx still satisfies
+    // principal + interest even if a few extra seconds accrue between
+    // fetching totalOwed and the block being mined.
+    // The contract refunds any overpayment automatically.
+    const repayValue = totalOwedAmount + totalOwedAmount / 10_000n + 1n
     repayWrite(
       {
         address: CONTRACT_ADDRESSES.azCredCreditLine,
         abi: AZCRED_CREDIT_LINE_ABI,
         functionName: "repayCredit",
         args: [profile.agentId],
-        value: totalOwedAmount,
+        value: repayValue,
         gas: 500_000n,
       },
       {
         onSuccess: () => toast.info("Repayment submitted, waiting for confirmation..."),
-        onError: (e) => toast.error("Repayment failed", { description: e.message }),
+        onError: (e) => {
+          console.error("[AgentCard repay error]", e)
+          toast.error("Repayment failed", { description: e.message })
+        },
       }
     )
   }
