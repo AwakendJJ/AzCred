@@ -1,13 +1,14 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useWriteContract, useWaitForTransactionReceipt, useReadContracts } from "wagmi"
+import { useState, useEffect, useMemo } from "react"
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts, useReadContract, useSimulateContract } from "wagmi"
 import { parseEther, formatEther } from "viem"
 import { ExternalLink, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { CreditTierBadge } from "@/components/ui/credit-tier-badge"
 import { ReputationSignals } from "@/components/ui/reputation-signals"
@@ -34,6 +35,75 @@ interface AgentCardProps {
 
 export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
   const [drawAmount, setDrawAmount] = useState("")
+  const { address: connectedAddress } = useAccount()
+
+  // Check if connected wallet owns this agent NFT
+  const { data: agentOwner } = useReadContract({
+    address: CONTRACT_ADDRESSES.identityRegistry,
+    abi: [{ type: "function", name: "ownerOf", inputs: [{ name: "tokenId", type: "uint256" }], outputs: [{ type: "address" }], stateMutability: "view" }],
+    functionName: "ownerOf",
+    args: [profile.agentId],
+  })
+  const isOwner = agentOwner && connectedAddress
+    ? agentOwner.toLowerCase() === connectedAddress.toLowerCase()
+    : false
+
+  // Parse draw amount to wei (undefined when invalid)
+  const drawAmountWei = useMemo(() => {
+    try {
+      const n = parseFloat(drawAmount)
+      if (!drawAmount || isNaN(n) || n <= 0) return undefined
+      return parseEther(drawAmount)
+    } catch { return undefined }
+  }, [drawAmount])
+
+  // Simulate draw before wallet popup — gives a decoded revert reason if it would fail
+  const {
+    error: drawSimError,
+    isError: drawSimFailed,
+  } = useSimulateContract({
+    address: CONTRACT_ADDRESSES.azCredCreditLine,
+    abi: AZCRED_CREDIT_LINE_ABI,
+    functionName: "drawCredit",
+    args: drawAmountWei !== undefined ? [profile.agentId, drawAmountWei] : undefined,
+    query: {
+      enabled: !!drawAmountWei && isOwner && profile.limit > 0n,
+      retry: false,
+    },
+  })
+
+  // Decode a human-readable hint from any contract revert error
+  function decodeDrawError(err: unknown): string {
+    if (!err) return "Transaction reverted. Try a smaller amount."
+    // Walk the full error chain: message, cause, shortMessage, data
+    const walk = (e: unknown): string => {
+      if (!e) return ""
+      const o = e as Record<string, unknown>
+      const parts = [
+        String(o.message ?? ""),
+        String(o.shortMessage ?? ""),
+        String(o.details ?? ""),
+        walk(o.cause),
+      ].join(" ")
+      return parts
+    }
+    const msg = walk(err)
+    console.error("[AgentCard draw error] full error:", err)
+    console.error("[AgentCard draw error] message chain:", msg)
+    if (msg.includes("NotAgentOwner"))
+      return "Only the wallet that registered this agent can draw credit."
+    if (msg.includes("InsufficientAvailableCredit") || msg.includes("ExceedsLimit"))
+      return `Amount exceeds available credit. Max: ${formatEther(profile.available)} tCTC`
+    if (msg.includes("InsufficientPoolBalance"))
+      return "Protocol pool doesn't have enough tCTC. Try a smaller amount."
+    if (msg.includes("CreditNotAssigned"))
+      return "Credit has not been assigned yet. Click 'Assign Credit' first."
+    if (msg.includes("User rejected") || msg.includes("user rejected") || msg.includes("4001"))
+      return "Transaction cancelled."
+    if (msg.includes("Transfer failed"))
+      return "CTC transfer from pool failed. Contact support."
+    return `Reverted on-chain — see console (F12) for details.`
+  }
 
   // Fetch live interest data
   const { data: interestData, refetch: refetchInterest } = useReadContracts({
@@ -77,34 +147,88 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
   const { writeContract: assignWrite, data: assignTxHash, isPending: assignPending } =
     useWriteContract()
 
-  const { isLoading: drawConfirming, isSuccess: drawSuccess } = useWaitForTransactionReceipt({
-    hash: drawTxHash,
-  })
-  const { isLoading: repayConfirming, isSuccess: repaySuccess } = useWaitForTransactionReceipt({
-    hash: repayTxHash,
-  })
-  const { isLoading: assignConfirming, isSuccess: assignSuccess } = useWaitForTransactionReceipt({
-    hash: assignTxHash,
-  })
+  const {
+    isLoading: drawConfirming,
+    isSuccess: drawSuccess,
+    isError: drawFailed,
+    error: drawReceiptError,
+    data: drawReceipt,
+  } = useWaitForTransactionReceipt({ hash: drawTxHash })
+
+  const {
+    isLoading: repayConfirming,
+    isSuccess: repaySuccess,
+    isError: repayFailed,
+    error: repayReceiptError,
+  } = useWaitForTransactionReceipt({ hash: repayTxHash })
+
+  const {
+    isLoading: assignConfirming,
+    isSuccess: assignSuccess,
+    isError: assignFailed,
+    error: assignReceiptError,
+  } = useWaitForTransactionReceipt({ hash: assignTxHash })
 
   useEffect(() => {
     if (drawSuccess) {
+      // Guard: some chains return isSuccess=true but receipt.status='reverted'
+      if (drawReceipt?.status === "reverted") {
+        const explorerLink = drawTxHash
+          ? `https://creditcoin-testnet.blockscout.com/tx/${drawTxHash}`
+          : null
+        console.error("[AgentCard] tx reverted but receipt came back success:", drawReceipt)
+        toast.error("Draw reverted on-chain", {
+          description: "Transaction was mined but execution reverted — see Blockscout for the exact reason.",
+          action: explorerLink
+            ? { label: "View on Blockscout", onClick: () => window.open(explorerLink, "_blank") }
+            : undefined,
+          duration: 12000,
+        })
+        return
+      }
       toast.success("Draw confirmed", { description: `${drawAmount} tCTC drawn` })
       setDrawAmount("")
       onCreditUpdated?.()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drawSuccess])
+  }, [drawSuccess, drawReceipt])
+
+  useEffect(() => {
+    if (drawFailed) {
+      const hint = decodeDrawError(drawReceiptError)
+      const explorerLink = drawTxHash
+        ? `https://creditcoin-testnet.blockscout.com/tx/${drawTxHash}`
+        : null
+      toast.error("Draw failed", {
+        description: hint,
+        action: explorerLink
+          ? { label: "View on Blockscout", onClick: () => window.open(explorerLink, "_blank") }
+          : undefined,
+        duration: 12000,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [drawFailed])
 
   useEffect(() => {
     if (repaySuccess) {
       toast.success("Repayment confirmed", { description: `${formatEther(totalOwedAmount)} tCTC repaid` })
-      setRepayAmount("")
       onCreditUpdated?.()
       refetchInterest()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [repaySuccess])
+
+  useEffect(() => {
+    if (repayFailed) {
+      const msg = repayReceiptError?.message ?? ""
+      const hint = msg.includes("InsufficientRepaymentWithInterest")
+        ? "Send the full amount including accrued interest."
+        : "Repayment transaction reverted. Try again."
+      toast.error("Repayment failed", { description: hint })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repayFailed])
 
   useEffect(() => {
     if (assignSuccess) {
@@ -113,6 +237,17 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assignSuccess])
+
+  useEffect(() => {
+    if (assignFailed) {
+      const msg = assignReceiptError?.message ?? ""
+      const hint = msg.includes("CreditAlreadyAssigned")
+        ? "Credit is already assigned for this agent."
+        : "Assignment transaction reverted."
+      toast.error("Assignment failed", { description: hint })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assignFailed])
 
   const needsAssignment = profile.limit === 0n
 
@@ -123,6 +258,7 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
         abi: AZCRED_CREDIT_LINE_ABI,
         functionName: "assignCredit",
         args: [profile.agentId],
+        gas: 500_000n,
       },
       {
         onSuccess: () => toast.info("Credit assignment submitted..."),
@@ -132,9 +268,18 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
   }
 
   function handleDraw() {
-    const amount = parseFloat(drawAmount)
-    if (!drawAmount || isNaN(amount) || amount <= 0) {
+    if (!drawAmountWei) {
       toast.error("Enter a valid draw amount")
+      return
+    }
+    if (drawAmountWei > profile.available) {
+      toast.error("Amount exceeds available credit", {
+        description: `Max drawable: ${formatEther(profile.available)} tCTC`,
+      })
+      return
+    }
+    if (drawSimFailed) {
+      toast.error("Draw would fail", { description: decodeDrawError(drawSimError) })
       return
     }
     drawWrite(
@@ -142,11 +287,12 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
         address: CONTRACT_ADDRESSES.azCredCreditLine,
         abi: AZCRED_CREDIT_LINE_ABI,
         functionName: "drawCredit",
-        args: [profile.agentId, parseEther(drawAmount)],
+        args: [profile.agentId, drawAmountWei],
+        gas: 500_000n, // Creditcoin testnet underestimates gas; hardcap avoids OOG
       },
       {
         onSuccess: () => toast.info("Draw submitted, waiting for confirmation..."),
-        onError: (e) => toast.error("Draw failed", { description: e.message }),
+        onError: (e) => toast.error("Draw failed", { description: decodeDrawError(e) }),
       }
     )
   }
@@ -163,6 +309,7 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
         functionName: "repayCredit",
         args: [profile.agentId],
         value: totalOwedAmount,
+        gas: 500_000n,
       },
       {
         onSuccess: () => toast.info("Repayment submitted, waiting for confirmation..."),
@@ -246,25 +393,39 @@ export function AgentCard({ profile, onCreditUpdated }: AgentCardProps) {
             {/* Draw credit */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-white/50">Draw Credit</p>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min="0"
-                  placeholder="Amount in tCTC"
-                  value={drawAmount}
-                  onChange={(e) => setDrawAmount(e.target.value)}
-                  className="border-white/10 bg-white/5 text-white placeholder:text-white/30"
-                />
-                <TransactionButton
-                  loading={drawLoading}
-                  loadingText="Drawing..."
-                  onClick={handleDraw}
-                  disabled={!drawAmount || drawLoading}
-                  className="shrink-0"
-                >
-                  Draw
-                </TransactionButton>
-              </div>
+              {!isOwner && agentOwner ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2.5 text-xs text-amber-400">
+                  ⚠ Only the agent owner can draw credit. Connect the wallet that registered this agent.
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      step="any"
+                      placeholder={`Max ${formatEther(profile.available)} tCTC`}
+                      value={drawAmount}
+                      onChange={(e) => setDrawAmount(e.target.value)}
+                      className={`border-white/10 bg-white/5 text-white placeholder:text-white/30 ${drawSimFailed && drawAmount ? "border-red-500/40" : ""}`}
+                    />
+                    <TransactionButton
+                      loading={drawLoading}
+                      loadingText="Drawing..."
+                      onClick={handleDraw}
+                      disabled={!drawAmount || drawLoading || (drawSimFailed && !!drawAmount)}
+                      className="shrink-0"
+                    >
+                      Draw
+                    </TransactionButton>
+                  </div>
+                  {drawSimFailed && drawAmount && (
+                    <p className="text-xs text-red-400">
+                      {decodeDrawError(drawSimError)}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Repay credit */}

@@ -39,6 +39,21 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY ? [PRIVATE_KEY] : [],
     },
   },
+  etherscan: {
+    apiKey: {
+      creditcoin_testnet: "placeholder", // Blockscout does not require a real API key
+    },
+    customChains: [
+      {
+        network: "creditcoin_testnet",
+        chainId: 102031,
+        urls: {
+          apiURL: "https://creditcoin-testnet.blockscout.com/api",
+          browserURL: "https://creditcoin-testnet.blockscout.com",
+        },
+      },
+    ],
+  },
   paths: {
     sources: "./contracts",
     tests: "./test",

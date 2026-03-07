@@ -81,22 +81,23 @@ function useCreditProfiles(agentIds: bigint[]) {
     query: { enabled: agentIds.length > 0 },
   })
 
-  const metaResults = useReadContracts({
+  // tokenURI stores agent JSON: { name, description, ... }
+  const uriResults = useReadContracts({
     contracts: agentIds.map((id) => ({
       address: CONTRACT_ADDRESSES.identityRegistry,
       abi: IDENTITY_REGISTRY_ABI,
-      functionName: "getMetadata" as const,
+      functionName: "tokenURI" as const,
       args: [id] as const,
     })),
     query: { enabled: agentIds.length > 0 },
   })
 
   const loading =
-    profileResults.isLoading || signalResults.isLoading || metaResults.isLoading
+    profileResults.isLoading || signalResults.isLoading || uriResults.isLoading
 
   const profiles: AgentCreditProfile[] = agentIds.map((id, i) => {
     const profileRaw = profileResults.data?.[i]
-    const metaRaw = metaResults.data?.[i]
+    const uriRaw = uriResults.data?.[i]
 
     // Each agent has 3 signal entries at indices i*3, i*3+1, i*3+2
     const ssRaw = signalResults.data?.[i * 3]
@@ -107,10 +108,17 @@ function useCreditProfiles(agentIds: bigint[]) {
       profileRaw?.status === "success"
         ? (profileRaw.result as [bigint, bigint, bigint, number])
         : null
-    const meta =
-      metaRaw?.status === "success"
-        ? (metaRaw.result as [string, string, string, string, string])
-        : null
+
+    // Parse name out of the JSON stored in tokenURI
+    let agentName = `Agent #${id}`
+    if (uriRaw?.status === "success") {
+      try {
+        const parsed = JSON.parse(uriRaw.result as string)
+        if (parsed?.name) agentName = parsed.name
+      } catch {
+        // keep default name
+      }
+    }
 
     // Each signal result is [int128 value, uint8 valueDecimals, bool found]
     const ssSignal = ssRaw?.status === "success" ? (ssRaw.result as [bigint, number, boolean]) : null
@@ -121,12 +129,11 @@ function useCreditProfiles(agentIds: bigint[]) {
     const outstanding = profile?.[1] ?? 0n
     // profile[2] = available (uint256), profile[3] = score (uint8)
     const score = profile?.[3] ?? 0
-
     const available = profile?.[2] ?? (limit > outstanding ? limit - outstanding : 0n)
 
     return {
       agentId: id,
-      name: meta?.[4] ? meta[4].split(" ")[0] : `Agent #${id}`,
+      name: agentName,
       limit,
       outstanding,
       available,
@@ -137,7 +144,7 @@ function useCreditProfiles(agentIds: bigint[]) {
     }
   })
 
-  return { profiles, loading, refetch: () => { profileResults.refetch(); signalResults.refetch() } }
+  return { profiles, loading, refetch: () => { profileResults.refetch(); signalResults.refetch(); uriResults.refetch() } }
 }
 
 // ─── Pool stat ─────────────────────────────────────────────────────────────────

@@ -611,6 +611,98 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Deployed Contracts ── */}
+      <section className="relative z-10 border-t border-white/10 bg-black/60 px-6 py-20 backdrop-blur-sm lg:px-20">
+        <div className="mx-auto max-w-5xl">
+          <p className="mb-2 text-sm font-medium text-orange-400">On-Chain</p>
+          <div className="mb-10 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <h2 className="text-3xl font-bold text-white lg:text-4xl">
+              Verified contracts
+            </h2>
+            <a
+              href="https://creditcoin-testnet.blockscout.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-white/30 hover:text-orange-400 transition-colors"
+            >
+              Creditcoin Testnet · Chain ID 102031 ↗
+            </a>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                label: "Identity Registry",
+                sublabel: "ERC-8004 · Agent identity NFTs",
+                address: "0x0eE5eB4A7A4e6dd3FFcE897196F90564F3Ba9572",
+                href: "https://creditcoin-testnet.blockscout.com/address/0x0eE5eB4A7A4e6dd3FFcE897196F90564F3Ba9572#code",
+                core: false,
+              },
+              {
+                label: "Reputation Registry",
+                sublabel: "ERC-8004 · On-chain reputation signals",
+                address: "0x16445e50e70f37a7795C5a4Ad1583E9250C85494",
+                href: "https://creditcoin-testnet.blockscout.com/address/0x16445e50e70f37a7795C5a4Ad1583E9250C85494#code",
+                core: false,
+              },
+              {
+                label: "Validation Registry",
+                sublabel: "ERC-8004 · Third-party validations",
+                address: "0xD95D19F086bf429A86Ea623B152E3038876383d4",
+                href: "https://creditcoin-testnet.blockscout.com/address/0xD95D19F086bf429A86Ea623B152E3038876383d4#code",
+                core: false,
+              },
+              {
+                label: "AzCred Credit Line",
+                sublabel: "Core Protocol · Credit pool & scoring",
+                address: "0x14ff68b60d69170eb4d1fD9752426758c629763C",
+                href: "https://creditcoin-testnet.blockscout.com/address/0x14ff68b60d69170eb4d1fD9752426758c629763C#code",
+                core: true,
+              },
+            ].map((c) => (
+              <a
+                key={c.address}
+                href={c.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`group flex items-center justify-between rounded-xl border p-4 transition-all duration-200 hover:scale-[1.01] ${
+                  c.core
+                    ? "border-orange-500/30 bg-orange-500/[0.06] hover:border-orange-500/60 hover:bg-orange-500/10"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.06]"
+                }`}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-sm font-semibold ${c.core ? "text-orange-300" : "text-white"}`}>
+                      {c.label}
+                    </span>
+                    <Badge
+                      className={`text-[10px] px-1.5 py-0 ${
+                        c.core
+                          ? "bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/20"
+                          : "bg-white/10 text-white/40 border-white/10 hover:bg-white/10"
+                      }`}
+                    >
+                      ✓ Verified
+                    </Badge>
+                  </div>
+                  <p className="mt-0.5 text-xs text-white/30">{c.sublabel}</p>
+                  <p className="mt-1.5 font-mono text-[11px] text-white/40 truncate">
+                    {c.address}
+                  </p>
+                </div>
+                <div className={`ml-4 flex-shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+                  c.core
+                    ? "border-orange-500/40 text-orange-400 group-hover:border-orange-500 group-hover:text-orange-300"
+                    : "border-white/10 text-white/30 group-hover:border-white/30 group-hover:text-white/60"
+                }`}>
+                  View ↗
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Footer ── */}
       <footer className="relative z-10 border-t border-white/10 px-6 py-8 lg:px-20">
         <div className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-4 sm:flex-row">

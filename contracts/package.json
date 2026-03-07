@@ -10,7 +10,9 @@
     "deploy:registries": "hardhat run scripts/deployRegistries.ts --network creditcoin_testnet",
     "deploy:azcred": "hardhat run scripts/deployAzCred.ts --network creditcoin_testnet",
     "seed": "hardhat run scripts/seedTestAgents.ts --network creditcoin_testnet",
+    "seed:more": "hardhat run scripts/seedMoreAgents.ts --network creditcoin_testnet",
     "verify": "hardhat run scripts/verifyDeployment.ts --network creditcoin_testnet",
+    "verify:contracts": "hardhat run scripts/verifyContracts.ts --network creditcoin_testnet",
     "test:coverage": "hardhat coverage"
   },
   "dependencies": {

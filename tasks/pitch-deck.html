@@ -576,8 +576,13 @@
       </div>
       <div class="card" style="text-align:center; padding:28px 20px;">
         <div style="font-size:28px; font-weight:800; color:var(--orange); margin-bottom:12px;">05</div>
-        <div class="card-title">Repay</div>
-        <div class="card-body">Agent repays tCTC (full or partial). Outstanding balance decreases. Credit freed up.</div>
+        <div class="card-title">Repay + Interest</div>
+        <div class="card-body">Agent repays principal + accrued 5% annual interest in one transaction. Interest stays in the pool as protocol revenue.</div>
+      </div>
+      <div class="card" style="text-align:center; padding:28px 20px;">
+        <div style="font-size:28px; font-weight:800; color:var(--orange); margin-bottom:12px;">06</div>
+        <div class="card-title">View History</div>
+        <div class="card-body">Full credit event log — every assign, draw, and repayment — read directly from on-chain logs with Blockscout links.</div>
       </div>
       <div class="card orange-card" style="text-align:center; padding:28px 20px; display:flex; flex-direction:column; align-items:center; justify-content:center;">
         <div style="font-size:13px; color:var(--orange); font-weight:600; margin-bottom:8px;">FULLY ON-CHAIN</div>
@@ -640,6 +645,14 @@
         <span class="badge done">✓ Done</span>
       </div>
       <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px;">
+        <span style="font-size:14px;">Interest rate model (5% p.a.) — on-chain accrual &amp; enforcement</span>
+        <span class="badge done">✓ Done</span>
+      </div>
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px;">
+        <span style="font-size:14px;">Agent credit history page — event log from chain</span>
+        <span class="badge done">✓ Done</span>
+      </div>
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 20px;">
         <span style="font-size:14px;">Liquidity provider module (designed)</span>
         <span class="badge soon">Next</span>
       </div>
@@ -650,8 +663,74 @@
     </div>
   </div>
 
-  <!-- ── 10 · Roadmap ────────────────────────────────────────────────────── -->
+  <!-- ── 10 · Deployed Contracts ────────────────────────────────────────── -->
   <div class="slide" id="s10">
+    <div class="slide-label">On-Chain Verification</div>
+    <h2 style="text-align:center; margin-bottom:10px;">Contracts <span class="orange">live on Creditcoin Testnet</span></h2>
+    <p class="sub" style="text-align:center; margin-bottom:32px; max-width:560px;">All four contracts are deployed and publicly verifiable on Creditcoin Testnet (Chain ID 102031). Click any address to inspect on Blockscout.</p>
+    <div style="display:flex; flex-direction:column; gap:12px; max-width:820px; width:100%;">
+
+      <div class="card" style="padding:18px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Identity Registry &nbsp;·&nbsp; ERC-8004</div>
+            <div style="font-family:'Courier New',monospace; font-size:13px; color:var(--text);">0x0eE5eB4A7A4e6dd3FFcE897196F90564F3Ba9572</div>
+          </div>
+          <a href="https://creditcoin-testnet.blockscout.com/address/0x0eE5eB4A7A4e6dd3FFcE897196F90564F3Ba9572" target="_blank"
+             style="font-size:12px; color:var(--orange); border:1px solid var(--orange-glow); border-radius:8px; padding:6px 14px; text-decoration:none; white-space:nowrap;">
+            View ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="card" style="padding:18px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Reputation Registry &nbsp;·&nbsp; ERC-8004</div>
+            <div style="font-family:'Courier New',monospace; font-size:13px; color:var(--text);">0x16445e50e70f37a7795C5a4Ad1583E9250C85494</div>
+          </div>
+          <a href="https://creditcoin-testnet.blockscout.com/address/0x16445e50e70f37a7795C5a4Ad1583E9250C85494" target="_blank"
+             style="font-size:12px; color:var(--orange); border:1px solid var(--orange-glow); border-radius:8px; padding:6px 14px; text-decoration:none; white-space:nowrap;">
+            View ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="card" style="padding:18px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Validation Registry &nbsp;·&nbsp; ERC-8004</div>
+            <div style="font-family:'Courier New',monospace; font-size:13px; color:var(--text);">0xD95D19F086bf429A86Ea623B152E3038876383d4</div>
+          </div>
+          <a href="https://creditcoin-testnet.blockscout.com/address/0xD95D19F086bf429A86Ea623B152E3038876383d4" target="_blank"
+             style="font-size:12px; color:var(--orange); border:1px solid var(--orange-glow); border-radius:8px; padding:6px 14px; text-decoration:none; white-space:nowrap;">
+            View ↗
+          </a>
+        </div>
+      </div>
+
+      <div class="card orange-card" style="padding:18px 22px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--orange); margin-bottom:4px;">AzCred Credit Line &nbsp;·&nbsp; Core Protocol</div>
+            <div style="font-family:'Courier New',monospace; font-size:13px; color:var(--text);">0x14ff68b60d69170eb4d1fD9752426758c629763C</div>
+          </div>
+          <a href="https://creditcoin-testnet.blockscout.com/address/0x14ff68b60d69170eb4d1fD9752426758c629763C" target="_blank"
+             style="font-size:12px; color:var(--orange); border:1px solid var(--orange-glow); border-radius:8px; padding:6px 14px; text-decoration:none; white-space:nowrap;">
+            View ↗
+          </a>
+        </div>
+      </div>
+
+    </div>
+    <div style="margin-top:20px; text-align:center; font-size:12px; color:var(--muted);">
+      Chain ID: 102031 &nbsp;·&nbsp; Deployed: March 2026 &nbsp;·&nbsp;
+      <a href="https://creditcoin-testnet.blockscout.com" target="_blank" style="color:var(--orange); text-decoration:none;">creditcoin-testnet.blockscout.com ↗</a>
+    </div>
+  </div>
+
+  <!-- ── 11 · Roadmap ────────────────────────────────────────────────────── -->
+  <div class="slide" id="s11">
     <div class="slide-label">Roadmap</div>
     <h2 style="margin-bottom:36px;">From MVP to <span class="orange">credit network</span></h2>
     <div class="grid-2" style="gap:14px; max-width:880px;">
@@ -690,8 +769,8 @@
     </div>
   </div>
 
-  <!-- ── 11 · Business Model ────────────────────────────────────────────── -->
-  <div class="slide" id="s11">
+  <!-- ── 12 · Business Model ────────────────────────────────────────────── -->
+  <div class="slide" id="s12">
     <div class="slide-label">Business Model</div>
     <h2 style="text-align:center; margin-bottom:36px;">Multiple <span class="orange">revenue streams</span></h2>
     <div style="max-width:720px; width:100%;">
@@ -745,8 +824,8 @@
     </div>
   </div>
 
-  <!-- ── 12 · The Ask ────────────────────────────────────────────────────── -->
-  <div class="slide" id="s12">
+  <!-- ── 13 · The Ask ────────────────────────────────────────────────────── -->
+  <div class="slide" id="s13">
     <div class="bg-glow" style="width:500px;height:500px;background:radial-gradient(circle,#f97316,transparent);top:-100px;right:-100px;"></div>
     <div class="slide-label">The Ask</div>
     <h2 style="text-align:center; margin-bottom:36px;">Seed Funding to <span class="orange">reach mainnet</span></h2>
@@ -777,8 +856,8 @@
     </div>
   </div>
 
-  <!-- ── 13 · Close ──────────────────────────────────────────────────────── -->
-  <div class="slide" id="s13">
+  <!-- ── 14 · Close ──────────────────────────────────────────────────────── -->
+  <div class="slide" id="s14">
     <div class="bg-glow" style="width:700px;height:700px;background:radial-gradient(circle,#f97316,transparent);bottom:-300px;right:-200px;opacity:.12;"></div>
     <div class="bg-glow" style="width:400px;height:400px;background:radial-gradient(circle,#f97316,transparent);top:-100px;left:-100px;opacity:.1;"></div>
     <div class="cover-logo" style="margin-bottom:24px;"><img src="../frontend/public/azcred-logo.png" alt="AzCred" /></div>
@@ -805,7 +884,7 @@
 </div><!-- /deck -->
 
 <script>
-  const TOTAL = 13
+  const TOTAL = 14
   let cur = 1
   let locked = false
 
